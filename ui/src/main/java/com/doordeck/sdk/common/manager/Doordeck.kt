@@ -65,7 +65,7 @@ object Doordeck {
         return keys!!
     }
     // device to unlock
-    private var deviceToUnlock: Device? = null
+    var deviceToUnlock: Device? = null
 
     // Shared Preferences
     @SuppressLint("StaticFieldLeak")
