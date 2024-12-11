@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.doordeck.sdk">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -13,36 +12,47 @@
     <uses-feature android:name="android.hardware.camera.autofocus" />
 
     <uses-sdk tools:overrideLibrary="com.google.zxing.client.android" />
-    
+
     <application>
         <activity
-            android:name=".ui.unlock.UnlockActivity"
+            android:name="com.doordeck.sdk.ui.unlock.UnlockActivity"
             android:screenOrientation="portrait"
             android:theme="@style/ddLightTheme"
             android:exported="true"
             android:excludeFromRecents="true"/>
         <activity
-            android:name=".ui.qrcode.QRcodeActivity"
+            android:name="com.doordeck.sdk.ui.qrcode.QRcodeActivity"
             android:screenOrientation="portrait"
             android:exported="true"
             android:excludeFromRecents="true"/>
         <activity
-            android:name=".ui.showlistofdevicestounlock.ShowListOfDevicesToUnlockActivity"
+            android:name="com.doordeck.sdk.ui.showlistofdevicestounlock.ShowListOfDevicesToUnlockActivity"
             android:screenOrientation="portrait"
             android:exported="true"
             android:excludeFromRecents="true"/>
         <activity
-            android:name=".ui.nfc.NFCActivity"
+            android:name="com.doordeck.sdk.ui.nfc.NFCActivity"
             android:screenOrientation="portrait"
             android:exported="true"
             android:excludeFromRecents="true">
+
+            <!-- Old mimetype to keep backwards compatibility -->
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/plain"/>
+            </intent-filter>
+
+            <!-- New mimetype to migrate soon -->
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data
+                    android:host="${nfc_uri_host}"
+                    android:scheme="${nfc_uri_scheme}" />
             </intent-filter>
         </activity>
-        <activity android:name=".ui.verify.VerifyDeviceActivity"
+        <activity android:name="com.doordeck.sdk.ui.verify.VerifyDeviceActivity"
             android:screenOrientation="portrait"
             android:excludeFromRecents="true"
             android:exported="true"

@@ -1,16 +1,17 @@
 package com.doordeck.sdk.dto.device;
 
-import com.doordeck.sdk.dto.device.UnlockBetweenWindow;
+import static com.doordeck.sdk.util.FixtureHelpers.fixture;
+import static org.junit.Assert.assertEquals;
+
 import com.doordeck.sdk.jackson.Jackson;
 import com.doordeck.sdk.util.DayOfWeek;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.joda.time.DateTimeZone;
-import org.joda.time.LocalDate;
-import org.joda.time.LocalTime;
+
 import org.junit.Test;
 
-import static com.doordeck.sdk.util.FixtureHelpers.fixture;
-import static org.junit.Assert.assertEquals;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 
 public class UnlockBetweenWindowTest {
 
@@ -19,10 +20,10 @@ public class UnlockBetweenWindowTest {
     private final UnlockBetweenWindow window = ImmutableUnlockBetweenWindow.builder()
         .addDays(DayOfWeek.MONDAY)
         .addDays(DayOfWeek.TUESDAY)
-        .start(new LocalTime(9,0))
-        .end(new LocalTime(17,0))
-        .timezone(DateTimeZone.forID("Europe/London"))
-        .addExceptions(new LocalDate(2017,5,6))
+        .start(LocalTime.of(9,0))
+        .end(LocalTime.of(17,0))
+        .timezone(ZoneId.of("Europe/London"))
+        .addExceptions(LocalDate.of(2017,5,6))
         .build();
 
     @Test

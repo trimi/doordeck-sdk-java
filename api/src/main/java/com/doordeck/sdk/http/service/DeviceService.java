@@ -3,7 +3,6 @@ package com.doordeck.sdk.http.service;
 import com.doordeck.sdk.dto.device.Device;
 import com.doordeck.sdk.dto.device.MultiDeviceResponse;
 import com.doordeck.sdk.dto.device.ShareableDevice;
-import com.google.common.net.HttpHeaders;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,18 +19,17 @@ import retrofit2.http.Path;
 public interface DeviceService {
 
     @GET("tile/{tileId}")
-    @Headers(HttpHeaders.ACCEPT + ": application/vnd.doordeck.api-v3+json, application/json") // Prefer newer endpoint
+    @Headers("Accept: application/vnd.doordeck.api-v3+json") // Prefer newer endpoint
     Call<MultiDeviceResponse> resolveTile(@Path("tileId") UUID tileId);
 
     @GET("device/{deviceId}")
-    @Headers(HttpHeaders.ACCEPT + ": application/vnd.doordeck.api-v3+json, application/json")
+    @Headers("Accept: application/vnd.doordeck.api-v2+json")
     Call<Device> getDevice(@Path("deviceId") UUID deviceId);
 
     @GET("site/{siteId}/device")
     Call<List<Device>> getSiteDevices(@Path("siteId") UUID siteId);
 
     @PUT("device/{deviceId}")
-    @Headers(HttpHeaders.ACCEPT + ": application/vnd.doordeck.api-v3+json, application/json") // Prefer newer endpoint
     Call<Void> updateDevice(@Path("deviceId") UUID deviceId, @Body RequestBody updateDeviceRequest);
 
     @GET("device/favourite")
@@ -41,7 +39,7 @@ public interface DeviceService {
     Call<List<ShareableDevice>> getShareableDevices();
 
     @POST("device/{deviceId}/execute")
-    @Headers(HttpHeaders.CONTENT_TYPE + ": application/jwt")
+    @Headers("Content-Type: application/jwt")
     Call<Void> executeOperation(@Path("deviceId") UUID deviceId, @Body String signedOperation);
 }
 

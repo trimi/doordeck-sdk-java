@@ -1,12 +1,13 @@
 apply plugin: 'java-library'
+apply plugin: "maven-publish"
 
 group='com.github.doordeck'
 
+
 buildscript {
     repositories {
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
+        mavenLocal()
+        gradlePluginPortal()
     }
     dependencies {
         classpath "gradle.plugin.org.inferred:gradle-processors:2.2.0"
@@ -20,23 +21,39 @@ dependencies {
     testAnnotationProcessor "org.immutables:value:2.7.5"
 
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson}"
-    implementation "com.fasterxml.jackson.datatype:jackson-datatype-joda:${versions.jackson}"
-    implementation "com.fasterxml.jackson.datatype:jackson-datatype-guava:${versions.jackson}"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${versions.jackson}"
 
-    implementation "com.google.guava:guava:27.1-jre"
 
     implementation "com.squareup.retrofit2:retrofit:${versions.retrofit}"
     implementation "com.squareup.retrofit2:converter-jackson:${versions.retrofit}"
     implementation "com.squareup.retrofit2:converter-scalars:${versions.retrofit}"
     implementation "com.squareup.okhttp3:okhttp:${versions.okhttp}"
 
-    implementation "org.bouncycastle:bcprov-jdk15on:${versions.bouncycastle}"
-    implementation deps.joda
-    
+    implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
+
+    //noinspection DependencyNotationArgument
     compileOnly deps.jsr305
 
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13.2'
 }
 
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
+
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.java
+            }
+        }
+        repositories {
+            mavenLocal()
+        }
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}

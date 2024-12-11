@@ -18,18 +18,20 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
-import com.doordeck.sdk.R
+import com.github.doordeck.ui.R
 import com.doordeck.sdk.common.manager.Doordeck
+import com.github.doordeck.ui.databinding.ActivityUnlockBinding
 import com.doordeck.sdk.dto.device.Device
 import com.doordeck.sdk.jackson.Jackson
 import com.doordeck.sdk.ui.BaseActivity
+import com.doordeck.sdk.ui.nfc.NFCActivity
+import com.doordeck.sdk.ui.qrcode.QRcodeActivity
 import com.doordeck.sdk.ui.showlistofdevicestounlock.ShowListOfDevicesToUnlockActivity
 import com.doordeck.sdk.ui.verify.VerifyDeviceActivity
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.LocationSettingsRequest
-import kotlinx.android.synthetic.main.activity_unlock.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -44,79 +46,100 @@ internal class UnlockActivity : BaseActivity(), UnlockView {
     private var locationPermissionShown = false
     private var googlePermissionShown = false
     private var canceledVerify = false
+    // Using this to avoid entering on onResume after a beaming.
+    //
+    // There can be a situation when the user beams, goes to see result and beams
+    // again while/after computing the result without clicking "Dismiss"
+    private var unlockFinished = false
 
+    private lateinit var binding: ActivityUnlockBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_unlock)
+
+        binding = ActivityUnlockBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         unlockPresenter = UnlockPresenter()
-        tvDismiss.setOnClickListener { finishActivity() }
-
+        binding.tvDismiss.setOnClickListener { back() }
     }
 
+    private fun back() {
+        finish()
+        when (comingFrom) {
+            COMING_FROM_DIRECT_UNLOCK -> {
+                // NO-OP, just finish ☝️
+            }
+
+            COMING_FROM_QR_SCAN -> QRcodeActivity.start(this)
+            COMING_FROM_NFC -> NFCActivity.start(this)
+        }
+
+        unlockFinished = false
+    }
 
     override fun showNoAccessGeoFence() {
         showAccessDeniedAnimation()
-        unlock_status.setText(R.string.ACCESS_DENIED_GEOFENCE)
+        binding.unlockStatus.setText(R.string.ACCESS_DENIED_GEOFENCE)
+
+        unlockFinished = true
     }
 
     override fun updateLockName(name: String) {
-        key_title.text = name
+        binding.keyTitle.text = name
     }
 
     override fun setUnlocking() {
-        unlock_status.text = getText(R.string.UNLOCKING)
+        binding.unlockStatus.text = getText(R.string.UNLOCKING)
     }
 
     override fun showGeoLoading() {
-        unlock_status.setText(R.string.CHECKING_GEOFENCE)
+        binding.unlockStatus.setText(R.string.CHECKING_GEOFENCE)
     }
 
 
     override fun finishActivity() {
-        finish()
+        back()
     }
 
 
     private fun resetAnimation() {
-        circle_back.scaleX = 0f
-        circle_back.scaleY = 0f
+        binding.circleBack.scaleX = 0f
+        binding.circleBack.scaleY = 0f
 
-        key_title.alpha = 0f
+        binding.keyTitle.alpha = 0f
 
         val animated = AnimatedVectorDrawableCompat.create(this, R.drawable.ic_unlock_success)
-        val animation = lock_image.drawable
+        val animation = binding.lockImage.drawable
         if (animation is Animatable) {
             (animation as Animatable).stop()
         }
-        lock_image.setImageDrawable(null)
-        lock_image.setImageDrawable(animated)
-        logo_spinner.visibility = View.VISIBLE
-        unlock_status.setText(R.string.UNLOCKING)
+        binding.lockImage.setImageDrawable(null)
+        binding.lockImage.setImageDrawable(animated)
+        binding.logoSpinner.visibility = View.VISIBLE
+        binding.unlockStatus.setText(R.string.UNLOCKING)
     }
 
     private fun showDelayTimer(delay: Double) {
         val animated = AnimatedVectorDrawableCompat.create(this, R.drawable.ic_unlock_success_blank)
-        val animation = lock_image.drawable
+        val animation = binding.lockImage.drawable
         if (animation is Animatable) {
             (animation as Animatable).stop()
         }
-        lock_image.setImageDrawable(null)
-        lock_image.setImageDrawable(animated)
+        binding.lockImage.setImageDrawable(null)
+        binding.lockImage.setImageDrawable(animated)
 
-        unlock_status?.text = getString(R.string.Please_Wait)
+        binding.unlockStatus.text = getString(R.string.Please_Wait)
 
         GlobalScope.launch(Dispatchers.Main) {
             val tickSeconds = 1
             val totalSeconds = max(TimeUnit.SECONDS.toSeconds(delay.toLong()), tickSeconds.toLong())
             for (second in totalSeconds downTo tickSeconds) {
-                delay_lock_time_text?.text = second.toString()
+                binding.delayLockTimeText.text = second.toString()
                 delay(1000)
             }
 
-            delay_lock_time_text?.text = null
+            binding.delayLockTimeText.text = null
 
             // Finish with the timer and show the unlock
             showUnlockAnimation()
@@ -136,33 +159,37 @@ internal class UnlockActivity : BaseActivity(), UnlockView {
 
     private fun showUnlockAnimation() {
 
-        tvDismiss.setBackgroundColor(ContextCompat.getColor(this, R.color.black_transp))
-        circle_back.setColorFilter(ContextCompat.getColor(this, R.color.success), PorterDuff.Mode.SRC_IN)
-        circle_back.animate().alpha(1f).scaleX(13f).scaleY(13f).setInterpolator(AccelerateInterpolator()).setDuration(500)
-        logo_spinner.alpha = 0f
+        binding.tvDismiss.setBackgroundColor(ContextCompat.getColor(this, R.color.black_transp))
+        binding.circleBack.setColorFilter(ContextCompat.getColor(this, R.color.success), PorterDuff.Mode.SRC_IN)
+        binding.circleBack.animate().alpha(1f).scaleX(13f).scaleY(13f).setInterpolator(AccelerateInterpolator()).setDuration(500)
+        binding.logoSpinner.alpha = 0f
         val animated = AnimatedVectorDrawableCompat.create(this, R.drawable.ic_unlock_success)
-        lock_image.setImageDrawable(animated)
-        val animation = lock_image.drawable
+        binding.lockImage.setImageDrawable(animated)
+        val animation = binding.lockImage.drawable
         if (animation is Animatable) {
             (animation as Animatable).start()
         }
-        unlock_status.setText(R.string.UNLOCKED)
-        key_title.animate().alpha(1f).translationY(150f).setInterpolator(OvershootInterpolator()).setDuration(500).startDelay = 500
+        binding.unlockStatus.setText(R.string.UNLOCKED)
+        binding.keyTitle.animate().alpha(1f).translationY(150f).setInterpolator(OvershootInterpolator()).setDuration(500).startDelay = 500
     }
 
     override fun showAccessDenied() {
         showAccessDeniedAnimation()
-        unlock_status.text = ""
+        binding.unlockStatus.text = ""
+
+        unlockFinished = true
     }
 
     override fun notValidTileId() {
         Toast.makeText(this, getString(R.string.tile_id_not_valid), Toast.LENGTH_LONG).show()
-        finish()
+        back()
     }
 
     override fun noUserLoggedIn() {
         showAccessDeniedAnimation()
-        unlock_status.text = getString(R.string.no_user_logged_in)
+        binding.unlockStatus.text = getString(R.string.no_user_logged_in)
+
+        unlockFinished = true
     }
 
     override fun goToDevices(devices: List<Device>) {
@@ -178,25 +205,25 @@ internal class UnlockActivity : BaseActivity(), UnlockView {
             canceledVerify = true
             VerifyDeviceActivity.start(this)
         } else {
-            finish()
+            back()
         }
     }
 
     private fun showAccessDeniedAnimation() {
-
-        tvDismiss.setBackgroundColor(ContextCompat.getColor(this, R.color.black_transp))
-        circle_back.setColorFilter(ContextCompat.getColor(this, R.color.error), PorterDuff.Mode.SRC_IN)
-        circle_back.animate().alpha(1f).scaleX(13f).scaleY(13f).setInterpolator(AccelerateInterpolator()).setDuration(500)
-        logo_spinner.alpha = 0f
+        binding.tvDismiss.setBackgroundColor(ContextCompat.getColor(this, R.color.black_transp))
+        binding.circleBack.setColorFilter(ContextCompat.getColor(this, R.color.error), PorterDuff.Mode.SRC_IN)
+        binding.circleBack.animate().alpha(1f).scaleX(13f).scaleY(13f).setInterpolator(AccelerateInterpolator()).setDuration(500)
+        binding.logoSpinner.alpha = 0f
         val animated = AnimatedVectorDrawableCompat.create(this, R.drawable.ic_unlock_fail)
-        lock_image.setImageDrawable(animated)
-        val animation = lock_image.drawable
+        binding.lockImage.setImageDrawable(animated)
+        val animation = binding.lockImage.drawable
         if (animation is Animatable) {
             (animation as Animatable).start()
         }
-        key_title.setText(R.string.ACCESS_DENIED)
-        key_title.animate().alpha(1f).translationY(150f).setInterpolator(OvershootInterpolator()).setDuration(500).startDelay = 500
+        binding.keyTitle.setText(R.string.ACCESS_DENIED)
+        binding.keyTitle.animate().alpha(1f).translationY(150f).setInterpolator(OvershootInterpolator()).setDuration(500).startDelay = 500
 
+        unlockFinished = true
     }
 
     override fun checkGoogleApiPermissions() {
@@ -275,8 +302,9 @@ internal class UnlockActivity : BaseActivity(), UnlockView {
         }
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
-        finish()
+        back()
     }
 
     public override fun onStart() {
@@ -286,15 +314,20 @@ internal class UnlockActivity : BaseActivity(), UnlockView {
 
     public override fun onResume() {
         super.onResume()
+        if (unlockFinished) {
+            return
+        }
+
         resetAnimation()
         if(!Doordeck.hasUserLoggedIn(this)) {
             noUserLoggedIn()
             return
         }
-        if (intent.extras?.getString(TILE_ID) != null) unlockPresenter?.init(intent.extras?.getString(TILE_ID))
-        else if (intent.extras?.getString(DEVICE) != null)  {
+        if (tileId != null) {
+            unlockPresenter?.init(tileId)
+        } else if (deviceJson != null)  {
             val om = Jackson.sharedObjectMapper()
-            val deviceToUnlock = om.readValue(intent.extras?.getString(DEVICE), Device::class.java)
+            val deviceToUnlock = om.readValue(deviceJson, Device::class.java)
             unlockPresenter?.init(deviceToUnlock)
         }
 
@@ -304,12 +337,12 @@ internal class UnlockActivity : BaseActivity(), UnlockView {
         super.onPause()
         unlockPresenter?.onStop()
         unlockPresenter = null
-        finish()
     }
 
     public override fun onStop() {
         super.onStop()
         unlockPresenter?.onStop()
+        finish()
     }
 
     override fun onDestroy() {
@@ -329,19 +362,43 @@ internal class UnlockActivity : BaseActivity(), UnlockView {
         private const val DEVICE = "DEVICE"
 
 
-        fun start(context: Context, id: String) {
+        /**
+         * Using this from the QR/NFC viewer, so we finish the activity which is the previous one,
+         * if it's an activity
+         */
+        fun start(context: Context, tileId: String, comingFrom: String) {
             val starter = Intent(context, UnlockActivity::class.java)
-            starter.putExtra(TILE_ID, id)
-            starter.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            starter.putExtra(TILE_ID, tileId)
+            starter.putExtra(COMING_FROM_KEY, comingFrom)
+            if (comingFrom != COMING_FROM_DIRECT_UNLOCK) {
+                starter.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
             context.startActivity(starter)
         }
-        fun start(context: Context, device: Device) {
+        fun start(context: Context, device: Device, comingFrom: String) {
             val starter = Intent(context, UnlockActivity::class.java)
             val om = Jackson.sharedObjectMapper()
             starter.putExtra(DEVICE, om.writeValueAsString(device))
-            starter.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            starter.putExtra(COMING_FROM_KEY, comingFrom)
+            if (comingFrom != COMING_FROM_DIRECT_UNLOCK) {
+                starter.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
             context.startActivity(starter)
         }
+
+        private const val COMING_FROM_KEY = "comingFrom"
+        const val COMING_FROM_DIRECT_UNLOCK = "comingFromDirectUnlock"
+        const val COMING_FROM_QR_SCAN = "comingFromQRScan"
+        const val COMING_FROM_NFC = "comingFromNFC"
     }
+
+    private val comingFrom: String?
+        get() = intent.extras?.getString(COMING_FROM_KEY)
+
+    private val tileId: String?
+        get() = intent.extras?.getString(TILE_ID)
+
+    private val deviceJson: String?
+        get() = intent.extras?.getString(DEVICE)
 
 }

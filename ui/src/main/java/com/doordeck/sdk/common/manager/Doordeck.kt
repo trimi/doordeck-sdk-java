@@ -2,9 +2,7 @@ package com.doordeck.sdk.common.manager
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.text.TextUtils
 import android.util.Log
-import com.doordeck.sdk.BuildConfig
 import com.doordeck.sdk.common.events.EventsManager
 import com.doordeck.sdk.common.events.IEventCallback
 import com.doordeck.sdk.common.events.UnlockCallback
@@ -13,6 +11,7 @@ import com.doordeck.sdk.common.models.EventAction
 import com.doordeck.sdk.common.models.JWTHeader
 import com.doordeck.sdk.common.utils.JWTContentUtils
 import com.doordeck.sdk.common.utils.LOG
+import com.doordeck.sdk.common.utils.isUUID
 import com.doordeck.sdk.dto.certificate.CertificateChain
 import com.doordeck.sdk.dto.device.Device
 import com.doordeck.sdk.dto.operation.Operation
@@ -22,8 +21,10 @@ import com.doordeck.sdk.signer.util.JWTUtils
 import com.doordeck.sdk.ui.nfc.NFCActivity
 import com.doordeck.sdk.ui.qrcode.QRcodeActivity
 import com.doordeck.sdk.ui.unlock.UnlockActivity
+import com.doordeck.sdk.ui.unlock.UnlockActivity.Companion.COMING_FROM_DIRECT_UNLOCK
 import com.doordeck.sdk.ui.verify.VerifyDeviceActivity
-import com.google.common.base.Preconditions
+import com.doordeck.sdk.ui.verify.VerifyDeviceActivity.Companion.defaultShouldUnlockAfterSuccessVerifying
+import com.github.doordeck.ui.BuildConfig
 import io.reactivex.Observable
 import java.net.URI
 import java.security.GeneralSecurityException
@@ -65,7 +66,8 @@ object Doordeck {
         return keys!!
     }
     // device to unlock
-    var deviceToUnlock: Device? = null
+
+    var objectToUnlock: ObjectToUnlock? = null
 
     // Shared Preferences
     @SuppressLint("StaticFieldLeak")
@@ -92,7 +94,7 @@ object Doordeck {
      * @param ctx Your application context! Warning, providing non-application context might break the app or cause memory leaks.
      * @param authToken (Nullable) A valid auth token. Make sure you refresh the auth token if needed before initializing the SDK.
      * If you don't have an auth token yet because the user is logged out, initiate the sdk with authToken = null and set the auth token after logging in with updateToken method.
-     * @param darkmode (Optional) set dark or light theme of the sdk.
+     * @param darkMode (Optional) set dark or light theme of the sdk.
      * @param unlockCallback provides a callback mainly for Auth purposes
      * @return Doordeck the current instance of the SDK
      */
@@ -103,12 +105,10 @@ object Doordeck {
             darkMode: Boolean = false,
             unlockCallback: UnlockCallback? = null
     ): Doordeck {
-        Preconditions.checkNotNull(ctx!!, "Context can't be null")
         if (authToken != null) {
             if (this.apiKey == null) {
-                val jwtToken = JWTContentUtils.getContentHeaderFromJson(authToken)
-                Preconditions.checkNotNull(jwtToken!!, "Api key is invalid")
-                Preconditions.checkArgument(isValidityApiKey(jwtToken), "Api key has expired")
+                val jwtToken = JWTContentUtils.getContentHeaderFromJson(authToken) ?: throw IllegalArgumentException("Api key is invalid")
+                if (!isValidityApiKey(jwtToken)) throw IllegalArgumentException("Api key has expired")
                 this.jwtToken = jwtToken
                 this.apiKey = authToken
                 this.darkMode = darkMode
@@ -124,7 +124,7 @@ object Doordeck {
                         certificateChain = getStoredCertificateChain()
                         if (certificateChain == null) {
                             keys?.public?.let { CertificateManager.getCertificatesAsync(it, unlockCallback) }
-                            var lastStatus = getLastStatus()
+                            val lastStatus = getLastStatus()
                             if (lastStatus != null) Doordeck.status = lastStatus
                         } else {
                             if (checkIfValidCertificate(certificateChain!!)) {
@@ -165,11 +165,10 @@ object Doordeck {
      */
     @JvmOverloads
     fun updateToken(authToken: String, ctx: Context, unlockCallback: UnlockCallback? = null) {
-        Preconditions.checkNotNull(sharedPreference!!, "Doordeck not initiated. Make sure to call initialize first.")
-        Preconditions.checkArgument(!TextUtils.isEmpty(authToken), "Token needs to be provided")
-        val jwtToken = JWTContentUtils.getContentHeaderFromJson(authToken)
-        Preconditions.checkNotNull(jwtToken!!, "Api key is invalid")
-        Preconditions.checkArgument(isValidityApiKey(jwtToken), "Api key has expired")
+        if (sharedPreference == null) throw IllegalArgumentException("Doordeck not initiated. Make sure to call initialize first.")
+        if (authToken.isBlank()) throw IllegalArgumentException("Token needs to be provided")
+        val jwtToken = JWTContentUtils.getContentHeaderFromJson(authToken) ?: throw IllegalArgumentException("Api key is invalid")
+        if (!isValidityApiKey(jwtToken)) throw IllegalArgumentException("Api key has expired")
         this.jwtToken = jwtToken
         this.apiKey = authToken
         this.darkMode = darkMode
@@ -209,15 +208,33 @@ object Doordeck {
     /**
      * Unlock method for unlocking via button unlock
      *
-     * @param ctx current context
+     * @param ctx current Context
      * @param device a valid device.
      * @param callback (optional) callback function for catching async response after unlock.
-     * @return Doordeck the current instance of the SDK
+     *
      */
     @JvmOverloads
     fun unlock(ctx: Context, device: Device, callback: UnlockCallback? = null){
-        this.deviceToUnlock = device
+        this.objectToUnlock = DeviceToUnlock(device)
         showUnlock(ctx, ScanType.UNLOCK, callback)
+    }
+
+    /**
+     * Unlock method for unlocking via UUID
+     *
+     * @param ctx current Context
+     * @param tileID: Tile UUID is UUID for a ile from a deeplink or QR or background NFC
+     * @param callback (optional) callback function for catching async response after unlock.
+     *
+     */
+    @JvmOverloads
+    fun unlockTileID(ctx: Context, tileID: String, callback: UnlockCallback? = null){
+        if (isUUID(tileID)) {
+            this.objectToUnlock = TileIdToUnlock(UUID.fromString(tileID))
+            showUnlock(ctx, ScanType.UNLOCK, callback)
+        } else {
+            throw IllegalStateException("No valid UUID")
+        }
     }
 
     /**
@@ -246,7 +263,21 @@ object Doordeck {
                     when (type) {
                         ScanType.QR -> QRcodeActivity.start(context)
                         ScanType.NFC -> NFCActivity.start(context)
-                        ScanType.UNLOCK -> UnlockActivity.start(context, deviceToUnlock!!)
+                        ScanType.UNLOCK -> when(val objectToUnlock = this.objectToUnlock) {
+                            is DeviceToUnlock -> UnlockActivity.start(
+                                context = context,
+                                device = objectToUnlock.device,
+                                comingFrom = COMING_FROM_DIRECT_UNLOCK,
+                            )
+                            is TileIdToUnlock -> UnlockActivity.start(
+                                context = context,
+                                tileId = objectToUnlock.tileID.toString(),
+                                comingFrom = COMING_FROM_DIRECT_UNLOCK,
+                            )
+                            null  -> {
+                                // NO-OP
+                            }
+                        }
                     }
                 }
                 this.unlockCallback = callback
@@ -287,8 +318,8 @@ object Doordeck {
     /**
      * Shows the verification screen
      */
-    fun showVerificationScreen(context: Context) {
-        VerifyDeviceActivity.start(context)
+    fun showVerificationScreen(context: Context, shouldUnlockAfterSuccessVerifying: Boolean = defaultShouldUnlockAfterSuccessVerifying) {
+        VerifyDeviceActivity.start(context, shouldUnlockAfterSuccessVerifying)
     }
 
 

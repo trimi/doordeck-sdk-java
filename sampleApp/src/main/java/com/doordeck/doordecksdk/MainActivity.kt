@@ -5,6 +5,7 @@ import android.util.Log
 import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.appcompat.app.AppCompatActivity
+import com.doordeck.doordecksdk.databinding.ActivityMainBinding
 import com.doordeck.sdk.common.events.EventCallback
 import com.doordeck.sdk.common.events.IEventCallback
 import com.doordeck.sdk.common.events.UnlockCallback
@@ -13,20 +14,25 @@ import com.doordeck.sdk.common.manager.ScanType
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
-import kotlinx.android.synthetic.main.activity_main.*
-
 
 class MainActivity : AppCompatActivity() {
 
     private var disposables = CompositeDisposable()
 
+    private lateinit var binding: ActivityMainBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        Doordeck.initialize(applicationContext, getString(R.string.doordeck_api_key), true);
 
-        nfc.setOnClickListener { Doordeck.showUnlock(this) }
-        qrcode.setOnClickListener { unlockWithQRCode() }
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        Doordeck.initialize(applicationContext, getString(R.string.doordeck_api_key), true)
+
+        binding.nfc.setOnClickListener { Doordeck.showUnlock(this) }
+        binding.qrcode.setOnClickListener { unlockWithQRCode() }
+        binding.uuid.setOnClickListener { unlockTileID() }
+
 
         // the listeners are optional, only if you wish to listen to those events
         listenForEventsRx()
@@ -38,38 +44,37 @@ class MainActivity : AppCompatActivity() {
     private fun unlockWithQRCode() {
         // the ScanType is optional, by default it's set to NFC
         // the callback is optional too
-        Doordeck.showUnlock(this, ScanType.QR, object : UnlockCallback {
-            override fun invalidAuthToken() {
-                Toast.makeText(applicationContext, "Invalid auth token", LENGTH_SHORT).show()
-
-            }
-
-            override fun notAuthenticated() {
-                Toast.makeText(applicationContext, "Not authentificated", LENGTH_SHORT).show()
-            }
-
-            override fun unlockSuccess() {
-                Toast.makeText(applicationContext, "Unlock Success", LENGTH_SHORT).show()
-            }
-
-            override fun unlockFailed() {
-                Toast.makeText(applicationContext, "Unlock Failed", LENGTH_SHORT).show()
-            }
-
-            override fun verificationNeeded() {
-                Toast.makeText(applicationContext, "2fa needed", LENGTH_SHORT).show()
-            }
-        })
+        Doordeck.showUnlock(this, ScanType.QR, defaultCallback)
     }
 
-    // suscribe to Doordeck.eventsObservable() that emits the events sent by the SDK
+    private fun unlockTileID() {
+        binding.uuidText.error = null
+        try {
+            val uuid = binding.uuidText.text.toString()
+            unlockTileID(uuid)
+        } catch (illegalStateException: IllegalStateException) {
+            binding.uuidText.error = illegalStateException.message
+        }
+    }
+
+    private fun unlockTileID(tileID: String) {
+        Doordeck.unlockTileID(
+            ctx = this,
+            tileID = tileID,
+            callback = defaultCallback,
+        )
+    }
+
+    // subscribe to Doordeck.eventsObservable() that emits the events sent by the SDK
     private fun listenForEventsRx() {
-        disposables.add(Doordeck.eventsObservable()
+        disposables.add(
+            Doordeck.eventsObservable()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({ event ->
                     Log.d("MainActivity", "event received : $event")
-                }, Throwable::printStackTrace))
+                }, Throwable::printStackTrace)
+        )
     }
 
 
@@ -138,6 +143,29 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         // free the memory
         disposables.dispose()
+    }
+
+    private val defaultCallback: UnlockCallback = object : UnlockCallback {
+        override fun invalidAuthToken() {
+            Toast.makeText(applicationContext, "Invalid auth token", LENGTH_SHORT).show()
+        }
+
+        override fun notAuthenticated() {
+            Toast.makeText(applicationContext, "Not authenticated", LENGTH_SHORT).show()
+        }
+
+        override fun unlockSuccess() {
+            Toast.makeText(applicationContext, "Unlock Success", LENGTH_SHORT).show()
+        }
+
+        override fun unlockFailed() {
+            Toast.makeText(applicationContext, "Unlock Failed", LENGTH_SHORT).show()
+        }
+
+        override fun verificationNeeded() {
+            Doordeck.showVerificationScreen(this@MainActivity, shouldUnlockAfterSuccessVerifying = true)
+            Toast.makeText(applicationContext, "2fa needed", LENGTH_SHORT).show()
+        }
     }
 
 }

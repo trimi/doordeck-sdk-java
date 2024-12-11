@@ -25,21 +25,21 @@ import com.doordeck.sdk.jackson.serializer.PublicKeySerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.fasterxml.jackson.datatype.joda.JodaModule;
-import org.joda.time.Duration;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.time.Duration;
 
 public class Jackson {
 
     private Jackson() { /* static class */ }
 
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .registerModule(new Jdk8Module())
             .registerModule(new OptionalUpdateModule())
-            .registerModule(new GuavaModule())
-            .registerModule(new JodaModule())
+            .registerModule(new JavaTimeModule())
             .registerModule(new SimpleModule()
                     .addSerializer(new DurationSerializer())
                     .addDeserializer(Duration.class, new DurationDeserializer())

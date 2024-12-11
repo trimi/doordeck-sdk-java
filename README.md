@@ -43,10 +43,46 @@ The 2nd param is optional, and correspond to the theme to use. Light or Dark. By
      * @return Doordeck the current instance of the SDK
      */
     fun initialize(apiKey: String, darkMode: Boolean = true): Doordeck
+``` 
+
+#### Tweak the NFC Uri settings
+Default values for a NFC Uri link would be `https://doordeck.link/${uuid}`.
+If you want to customise this values, go to your main project's `build.gradle`, inside `buildscript { }` define:
+
 ```
+ext.nfcUri = [
+    "scheme": "https", // Replace with the scheme you want or leave it empty
+    "host": "doordeck.link", // Replace with the host you want or leave it empty
+]
+```
+
+#### Proguard
+
+When enabling `minifyEnabled`, proguard and or R8 tools, you need to include these rules to the proguard-rules.pro:
+
+```
+-keep class com.doordeck.** { *; }
+-keep class org.bouncycastle.jcajce.provider.** { *; }
+-keep class org.bouncycastle.jce.provider.** { *; }
+-dontwarn javax.naming.**
+-keep class retrofit2.** { *; }
+-keepattributes *Annotation*
+-keep class com.squareup.okhttp.** { *; }
+-keep interface com.squareup.okhttp.** { *; }
+-keep class okhttp3.** { *; }
+-keep interface okhttp3.** { *; }
+```
+
+If you're using Gson, also add:
+
+```
+-keep class com.google.gson.reflect.TypeToken
+-keep class * extends com.google.gson.reflect.TypeToken
+-keep public class * implements java.lang.reflect.Type
+```
+
     
-    
-#### Unlock a door
+#### Unlock a door by NFC/QR
 
 The SDK has a method that will open an activity to get the information regarding the door to open, and open it according to the option you give to the method.
 - The `Context` needs to be provided, it's required.
@@ -68,6 +104,25 @@ Once the door unlocked, the activity opened by the SDK will close automatically 
 
 ```
 
+#### Unlock by Tile ID
+The SDK has a method that will open an activity to pass the information once obtained the Tile ID (UUID) beforehand.
+- You need the `UUID (String)`
+
+```
+    /**
+     * Unlock method for unlocking via UUID
+     *
+     * @param ctx current Context
+     * @param tileID: Tile UUID is UUID for a ile from a deeplink or QR or background NFC
+     * @param callback (optional) callback function for catching async response after unlock.
+     *
+     */
+    @JvmOverloads
+    fun unlockTileID(ctx: Context, tileID: String, callback: UnlockCallback? = null){
+        this.deviceToUnlock = PartialDevice(tileID)
+        showUnlock(ctx, ScanType.UNLOCK, callback)
+    }
+```
 
 #### Being aware of events
 

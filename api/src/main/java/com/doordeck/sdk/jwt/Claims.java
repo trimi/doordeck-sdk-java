@@ -22,21 +22,21 @@ import com.doordeck.sdk.jackson.serializer.InstantSecondSerializer;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import org.immutables.value.Value;
-import org.joda.time.Duration;
-import org.joda.time.Instant;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableClaims.class)
 @JsonDeserialize(as = ImmutableClaims.class)
 public abstract class Claims {
 
-    private static final Duration DEFAULT_TIMEOUT = Duration.standardSeconds(60);
-    private static final Duration MAX_EXPIRY = Duration.standardDays(14);
+    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(60);
+    private static final Duration MAX_EXPIRY = Duration.ofDays(14);
 
     @JsonProperty("iss")
     public abstract UUID userId();
@@ -50,7 +50,7 @@ public abstract class Claims {
     @JsonDeserialize(using = InstantSecondDeserializer.class)
     public Instant issuedAt() {
         // Truncate to seconds
-        return Instant.now().toDateTime().withMillisOfSecond(0).toInstant();
+        return Instant.now().truncatedTo(ChronoUnit.SECONDS);
     }
 
     @Value.Default
@@ -80,9 +80,11 @@ public abstract class Claims {
 
     @Value.Check
     protected Claims normalize() {
-        checkArgument(Instant.now().plus(MAX_EXPIRY).compareTo(expiresAt()) >= 0, "Expiry must be in less than 14 days time");
+        if (expiresAt().isAfter(Instant.now().plus(MAX_EXPIRY))) {
+            throw new IllegalArgumentException("Expiry must be in less than 14 days time");
+        }
 
-        Instant truncatedExpiresAt = expiresAt().toDateTime().withMillisOfSecond(0).toInstant();
+        Instant truncatedExpiresAt = expiresAt().truncatedTo(ChronoUnit.SECONDS);
 
         if (!truncatedExpiresAt.equals(expiresAt())) {
             return ImmutableClaims.builder()

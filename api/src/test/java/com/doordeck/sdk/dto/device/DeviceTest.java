@@ -1,19 +1,20 @@
 package com.doordeck.sdk.dto.device;
 
+import static com.doordeck.sdk.util.FixtureHelpers.fixture;
+import static org.junit.Assert.assertEquals;
+
 import com.doordeck.sdk.dto.Role;
 import com.doordeck.sdk.jackson.Jackson;
 import com.doordeck.sdk.util.DayOfWeek;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.joda.time.DateTimeZone;
-import org.joda.time.Instant;
-import org.joda.time.LocalDate;
-import org.joda.time.LocalTime;
+
 import org.junit.Test;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.UUID;
-
-import static com.doordeck.sdk.util.FixtureHelpers.fixture;
-import static org.junit.Assert.assertEquals;
 
 public class DeviceTest {
 
@@ -26,6 +27,7 @@ public class DeviceTest {
             .start(Instant.parse("2018-05-11T08:15:00.000Z"))
             .end(Instant.parse("2018-05-18T16:30:00.000Z"))
             .role(Role.ADMIN)
+            .colour("#24BD9A")
             .settings(ImmutableDeviceSetting.builder()
                     .defaultName("Paxton Net2 (1787501)")
                     .addTile(UUID.fromString("ddb74c90-7c1e-11e7-9823-a9f736dac766"))
@@ -43,7 +45,7 @@ public class DeviceTest {
                                     .addDays(DayOfWeek.FRIDAY)
                                     .start(LocalTime.parse("08:00"))
                                     .end(LocalTime.parse("18:00"))
-                                    .timezone(DateTimeZone.forID("Europe/London"))
+                                    .timezone(ZoneId.of("Europe/London"))
                                     .build())
                             .build())
                     .unlockBetween(ImmutableUnlockBetweenWindow.builder()
@@ -51,7 +53,7 @@ public class DeviceTest {
                             .addDays(DayOfWeek.WEDNESDAY)
                             .start(LocalTime.parse("08:00"))
                             .end(LocalTime.parse("18:00"))
-                            .timezone(DateTimeZone.forID("Europe/London"))
+                            .timezone(ZoneId.of("Europe/London"))
                             .addExceptions(LocalDate.parse("2019-03-29"))
                             .build())
                     .build())
@@ -62,6 +64,7 @@ public class DeviceTest {
             .name("Paxton Net2 (1787501)")
             .favourite(false)
             .role(Role.USER)
+            .colour("#24BD9A")
             .settings(ImmutableDeviceSetting.builder()
                     .defaultName("Paxton Net2 (1787501)")
                     .build())

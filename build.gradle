@@ -2,42 +2,90 @@
 
 buildscript {
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
+        maven { url "https://jitpack.io" }
     }
 
     ext.versions = [
-            'kotlin': '1.3.72',
-            'okhttp': '3.14.7',
-            'bouncycastle': '1.61',
-            'guava': '27.1',
+            'kotlin': '1.8.0',
+            'okhttp': '4.12.0',
+            'bouncycastle': '1.78.1',
             'findbugs': '3.0.2',
-            'joda': '2.10.1',
-            'jackson': '2.9.10',
+            'jackson': '2.17.2',
             'retrofit': '2.6.2'
     ]
+
+    ext.kotlin_version = ext.versions.kotlin
 
     ext.deps = [
             'jsr305': "com.google.code.findbugs:jsr305:${versions.findbugs}",
             'okhttp': "com.squareup.okhttp3:okhttp:${versions.okhttp}",
-            'joda': "joda-time:joda-time:${versions.joda}",
+    ]
+
+    ext.nfcUri = [
+        "scheme": "https",
+        "host": "doordeck.link",
     ]
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.0.4'
+        classpath 'com.android.tools:r8:8.3.37'
+        classpath "com.android.tools.build:gradle:8.5.0"
         classpath 'com.github.dcendents:android-maven-gradle-plugin:2.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}"
     }
-}
 
-allprojects {
+    configurations.configureEach {
+        // Transitive dependencies check
+        resolutionStrategy {
+            force "org.apache.commons:commons-compress:1.26.2"
+            force "org.bitbucket.b_c:jose4j:0.9.4"
+            force "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
+            force "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
+            force "org.bouncycastle:bcutil-jdk18on:${versions.bouncycastle}"
+            force "com.google.guava:guava:33.2.1-android"
+            force "com.squareup.okio:okio:3.9.0"
+            force "io.grpc:grpc-netty:1.65.0"
 
-    repositories {
-        google()
-        mavenCentral()
+            eachDependency {
+                if (requested.group == "io.netty") {
+                    useVersion("4.1.111.Final")
+                }
+            }
+        }
     }
 }
 
-task clean(type: Delete) {
-    delete rootProject.buildDir
+plugins {
+    id 'maven-publish'
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://jitpack.io" }
+    }
+
+    configurations.configureEach {
+        // Transitive dependencies check
+        resolutionStrategy {
+            force "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
+            force "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
+            force "org.bouncycastle:bcutil-jdk18on:${versions.bouncycastle}"
+            force "com.squareup.okio:okio:3.9.0"
+            force "io.grpc:grpc-netty:1.65.0"
+
+            eachDependency {
+                if (requested.group == "io.netty") {
+                    useVersion("4.1.111.Final")
+                }
+            }
+        }
+    }
+}
+
+tasks.register('clean', Delete) {
+    delete rootProject.layout.buildDirectory
 }

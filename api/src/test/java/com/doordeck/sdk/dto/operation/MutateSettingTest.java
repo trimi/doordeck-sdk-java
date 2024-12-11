@@ -1,23 +1,22 @@
 package com.doordeck.sdk.dto.operation;
 
+import static com.doordeck.sdk.util.FixtureHelpers.fixture;
+import static org.junit.Assert.assertEquals;
+
 import com.doordeck.sdk.dto.device.ImmutableUnlockBetweenWindow;
 import com.doordeck.sdk.dto.device.UnlockBetweenWindow;
-import com.doordeck.sdk.dto.operation.ImmutableMutateSetting;
-import com.doordeck.sdk.dto.operation.MutateSetting;
-import com.doordeck.sdk.dto.operation.Operation;
 import com.doordeck.sdk.jackson.Jackson;
 import com.doordeck.sdk.util.DayOfWeek;
 import com.doordeck.sdk.util.OptionalUpdate;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Optional;
-import org.joda.time.DateTimeZone;
-import org.joda.time.Duration;
-import org.joda.time.LocalDate;
-import org.joda.time.LocalTime;
+
 import org.junit.Test;
 
-import static com.doordeck.sdk.util.FixtureHelpers.fixture;
-import static org.junit.Assert.assertEquals;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.Optional;
 
 public class MutateSettingTest {
 
@@ -26,16 +25,16 @@ public class MutateSettingTest {
     private final UnlockBetweenWindow window = ImmutableUnlockBetweenWindow.builder()
         .addDays(DayOfWeek.MONDAY)
         .addDays(DayOfWeek.TUESDAY)
-        .start(new LocalTime(9,0))
-        .end(new LocalTime(17,0))
-        .timezone(DateTimeZone.forID("Europe/London"))
-        .addExceptions(new LocalDate(2017,5,6))
+        .start(LocalTime.of(9,0))
+        .end(LocalTime.of(17,0))
+        .timezone(ZoneId.of("Europe/London"))
+        .addExceptions(LocalDate.of(2017,5,6))
         .build();
 
     @Test
     public void serializesToJSON() throws Exception {
         MutateSetting setting = ImmutableMutateSetting.builder()
-            .unlockDuration(Duration.standardSeconds(7))
+            .unlockDuration(Duration.ofSeconds(7))
             .unlockBetween(OptionalUpdate.update(window))
             .build();
         assertEquals(fixture("fixtures/settings-with-window-and-duration.json"), MAPPER.writeValueAsString(setting));
@@ -44,7 +43,7 @@ public class MutateSettingTest {
     @Test
     public void deserializesFromJSON() throws Exception {
         MutateSetting setting = ImmutableMutateSetting.builder()
-            .unlockDuration(Duration.standardSeconds(7))
+            .unlockDuration(Duration.ofSeconds(7))
             .unlockBetween(OptionalUpdate.update(window))
             .build();
         assertEquals(setting, MAPPER.readValue(fixture("fixtures/settings-with-window-and-duration.json"), Operation.class));
@@ -55,7 +54,7 @@ public class MutateSettingTest {
         Operation op = MAPPER.readValue(fixture("fixtures/settings-with-null-window.json"), Operation.class);
         assertEquals(true, op instanceof MutateSetting);
         assertEquals(OptionalUpdate.delete(), ((MutateSetting)op).unlockBetween());
-        assertEquals(Optional.absent(), ((MutateSetting)op).unlockDuration());
+        assertEquals(Optional.empty(), ((MutateSetting)op).unlockDuration());
     }
 
     @Test
@@ -72,7 +71,7 @@ public class MutateSettingTest {
         Operation op = MAPPER.readValue(fixture("fixtures/settings-without-values.json"), Operation.class);
         assertEquals(true, op instanceof MutateSetting);
         assertEquals(OptionalUpdate.preserve(), ((MutateSetting)op).unlockBetween());
-        assertEquals(Optional.absent(), ((MutateSetting)op).unlockDuration());
+        assertEquals(Optional.empty(), ((MutateSetting)op).unlockDuration());
     }
 
     @Test
