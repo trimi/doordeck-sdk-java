@@ -74,7 +74,9 @@ internal class UnlockPresenter {
      * @param device of the pressed button
      */
     fun init(device: Device?) {
-
+        if (device != null) {
+            DeviceObject.deviceId = device.deviceId()
+        }
         // wait for certificate to be loaded if nescesarry
         if (Doordeck.certificateChain == null && Doordeck.status != AuthStatus.TWO_FACTOR_AUTH_NEEDED) {
             Doordeck.onCertLoaded = { oldValue, newValue ->
@@ -137,6 +139,7 @@ internal class UnlockPresenter {
      * @param tileId id of the tile scanned
      */
     private fun resolveTile(tileId: String) {
+        DeviceObject.tileId = tileId
         jobs += GlobalScope.launch(Dispatchers.Main) {
             when(val result = deviceRepository?.getDevicesAvailable(tileId, view?.getDefaultLockColours() ?: arrayOf())) {
                 is Result.Ok -> proceedWithDevices(result.value)
@@ -168,6 +171,7 @@ internal class UnlockPresenter {
     private fun resolveTileSuccess(device: Device) {
         EventsManager.sendEvent(EventAction.RESOLVE_TILE_SUCCESS)
         this.deviceToUnlock = device
+        DeviceObject.deviceId = device.deviceId()
         view?.updateLockName(device.name())
         view?.setUnlocking()
 
@@ -188,6 +192,8 @@ internal class UnlockPresenter {
      * Display the acces denied animation
      */
     private fun accessDenied() {
+        DeviceObject.deviceId = null
+        EventsManager.sendEvent(EventAction.UNLOCK_FAILED)
         view?.showAccessDenied()
     }
 
@@ -197,6 +203,7 @@ internal class UnlockPresenter {
      * @param delayOfDevice is the delay that the Device has shown it'll take to load
      */
     private fun unlockDevice(deviceId: UUID, delayOfDevice: Double = 0.0) {
+        DeviceObject.deviceId = deviceId
         Doordeck.certificateChain?.let { chain ->
             jobs += GlobalScope.launch(Dispatchers.Main) {
                 val signedJWT = JWTUtils.getSignedJWT(chain.certificateChain(),
