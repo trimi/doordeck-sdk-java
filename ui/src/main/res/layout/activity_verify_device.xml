@@ -93,120 +93,123 @@
     </LinearLayout>
 
 
-
-
     <LinearLayout
+        android:id="@+id/codeLayout"
         android:layout_width="wrap_content"
+        android:layout_height="45dp"
         android:layout_below="@+id/tvReSendCode"
-        android:layout_marginTop="60dp"
         android:layout_centerHorizontal="true"
-        android:orientation="horizontal"
-        android:layout_height="45dp">
+        android:layout_marginTop="60dp"
+        android:orientation="horizontal">
 
         <EditText
-            android:layout_width="35dp"
-            android:layout_marginRight="10dp"
-            android:textColor="?attr/ddColorAccent"
-            android:textSize="16dp"
-            android:maxLength="1"
-            android:imeOptions="actionNext"
             android:id="@+id/edDigit1"
-            android:inputType="number"
-            android:windowSoftInputMode="stateVisible"
-            android:nextFocusRight="@id/edDigit2"
-            android:gravity="center"
-            android:background="@drawable/digit_background"
-            android:layout_height="match_parent" />
-
-        <EditText
             android:layout_width="35dp"
+            android:layout_height="match_parent"
             android:layout_marginRight="10dp"
-            android:textSize="16dp"
-            android:id="@+id/edDigit2"
-            android:maxLength="1"
-            android:imeOptions="actionNext"
-            android:nextFocusRight="@id/edDigit3"
-            android:inputType="number"
-            android:textColor="?attr/ddColorAccent"
-            android:gravity="center"
             android:background="@drawable/digit_background"
-            android:layout_height="match_parent" />
+            android:gravity="center"
+            android:imeOptions="actionNext"
+            android:inputType="number"
+            android:maxLength="1"
+            android:nextFocusRight="@id/edDigit2"
+            android:textColor="?attr/ddColorAccent"
+            android:textSize="16dp"
+            android:windowSoftInputMode="stateVisible" />
 
         <EditText
+            android:id="@+id/edDigit2"
             android:layout_width="35dp"
-            android:textSize="16dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="10dp"
+            android:background="@drawable/digit_background"
+            android:gravity="center"
+            android:imeOptions="actionNext"
+            android:inputType="number"
+            android:maxLength="1"
+            android:nextFocusRight="@id/edDigit3"
+            android:textColor="?attr/ddColorAccent"
+            android:textSize="16dp" />
+
+        <EditText
             android:id="@+id/edDigit3"
+            android:layout_width="35dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/digit_background"
+            android:gravity="center"
+            android:imeOptions="actionNext"
+            android:inputType="number"
             android:maxLength="1"
             android:nextFocusRight="@id/edDigit4"
-            android:imeOptions="actionNext"
-            android:inputType="number"
             android:textColor="?attr/ddColorAccent"
-            android:gravity="center"
-            android:background="@drawable/digit_background"
-            android:layout_height="match_parent" />
+            android:textSize="16dp" />
 
         <TextView
             android:layout_width="30dp"
-            android:text="-"
+            android:layout_height="match_parent"
             android:gravity="center_horizontal"
-            android:textSize="30dp"
+            android:text="-"
             android:textColor="@color/dark_grey"
-            android:layout_height="match_parent" />
+            android:textSize="30dp" />
 
 
         <EditText
-            android:layout_width="35dp"
-            android:layout_marginRight="10dp"
-            android:textSize="16dp"
             android:id="@+id/edDigit4"
-            android:maxLength="1"
+            android:layout_width="35dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="10dp"
+            android:background="@drawable/digit_background"
+            android:gravity="center"
             android:imeOptions="actionNext"
             android:inputType="number"
-            android:textColor="?attr/ddColorAccent"
+            android:maxLength="1"
             android:nextFocusRight="@id/edDigit5"
-            android:gravity="center"
-            android:background="@drawable/digit_background"
-            android:layout_height="match_parent" />
+            android:textColor="?attr/ddColorAccent"
+            android:textSize="16dp" />
 
 
         <EditText
-            android:layout_width="35dp"
-            android:layout_marginRight="10dp"
-            android:textSize="16dp"
-            android:maxLength="1"
             android:id="@+id/edDigit5"
-            android:nextFocusRight="@id/edDigit6"
+            android:layout_width="35dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="10dp"
+            android:background="@drawable/digit_background"
+            android:gravity="center"
             android:imeOptions="actionNext"
             android:inputType="number"
-            android:gravity="center"
-            android:background="@drawable/digit_background"
+            android:maxLength="1"
+            android:nextFocusRight="@id/edDigit6"
             android:textColor="?attr/ddColorAccent"
-            android:layout_height="match_parent" />
+            android:textSize="16dp" />
 
 
         <EditText
-            android:layout_width="35dp"
-            android:layout_marginRight="10dp"
-            android:textSize="16dp"
             android:id="@+id/edDigit6"
-            android:imeOptions="actionDone"
-            android:maxLength="1"
-            android:inputType="number"
-            android:textColor="?attr/ddColorAccent"
-            android:gravity="center"
+            android:layout_width="35dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="10dp"
             android:background="@drawable/digit_background"
-            android:layout_height="match_parent" />
+            android:gravity="center"
+            android:imeOptions="actionDone"
+            android:inputType="number"
+            android:maxLength="1"
+            android:textColor="?attr/ddColorAccent"
+            android:textSize="16dp" />
 
 
     </LinearLayout>
-
 
 
     <TextView
         android:id="@+id/tvSend"
         android:layout_width="match_parent"
         android:layout_height="@dimen/dismiss_btn_height"
-        android:layout_alignParentBottom="true"
+        android:layout_alignTop="@id/codeLayout"
+        android:layout_alignParentBottom="false"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="100dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="50dp"
         android:background="?attr/ddColorAccent"
         android:gravity="center_horizontal"
         android:paddingTop="15dp"
